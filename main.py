@@ -33,12 +33,33 @@ pag_dict = {
     }
 
 
+def deletar_xml_invalido():
+    pasta = "nfe"
+    for arquivo in os.listdir(pasta):
+        caminho_arquivo = os.path.join(pasta, arquivo)
+        nome_splitado = arquivo.split('-')
+        extensao = nome_splitado[1]
+        if extensao == 'nfe.xml':
+            os.remove(caminho_arquivo)
+
+
+def mover_xml_erro(xml):
+    pasta_origem = "nfe"
+    pasta_destino = "nfe_erro"
+
+    caminho_origem = os.path.join(pasta_origem, xml)
+    caminho_destino = os.path.join(pasta_destino, xml)
+
+    os.rename(caminho_origem, caminho_destino)
+
+
 def extrair_dados(nome_arquivo):
-    with open(f'nfe/{nome_arquivo}', 'rb') as arquivo_xml:
         try:
-            dic_arquivo = xmltodict.parse(arquivo_xml)
+            with open(f'nfe/{nome_arquivo}', 'rb') as arquivo_xml:
+                dic_arquivo = xmltodict.parse(arquivo_xml)
         except:
             print(f'NFe com erro: {nome_arquivo[28:34]}')
+            mover_xml_erro(nome_arquivo)
             return
 
         if "NFe" in dic_arquivo:
@@ -196,6 +217,8 @@ id_caixa = int(input("Digite o ID do caixa: "))
 codigo_venda_pagamento = ultima_venda
 codigo_venda_item = ultima_venda
 
+
+deletar_xml_invalido()
 
 cont = 0
 for arquivo in lista_arquivos:
