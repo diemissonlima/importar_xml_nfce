@@ -1,9 +1,11 @@
 import json
-
 import xmltodict
 import os
+import re
 import pymysql
 from time import sleep
+
+from Tools.scripts.summarize_stats import pretty
 
 print("Lendo os XML's, aguarde por gentileza..")
 
@@ -43,6 +45,19 @@ def deletar_xml_invalido():
             os.remove(caminho_arquivo)
 
 
+def editar_xml(nome_arquivo):
+    with open(f'nfe/{nome_arquivo}', 'r', encoding='utf-8') as arquivo_xml:
+        xml_str = arquivo_xml.read()
+        xml_str = re.sub(r'<\?xml.*?\?>', '', xml_str).lstrip()
+        data = xmltodict.parse(xml_str)
+        novo_xml = xmltodict.unparse(data, pretty=True)
+
+    with open(f'nfe/{nome_arquivo}', 'w', encoding='utf-8') as arquivo_corrigido:
+        arquivo_corrigido.write(novo_xml)
+
+    extrair_dados(nome_arquivo)
+
+
 def mover_xml_erro(xml):
     pasta_origem = "nfe"
     pasta_destino = "nfe_erro"
@@ -58,8 +73,8 @@ def extrair_dados(nome_arquivo):
             with open(f'nfe/{nome_arquivo}', 'rb') as arquivo_xml:
                 dic_arquivo = xmltodict.parse(arquivo_xml)
         except:
-            print(f'NFe com erro: {nome_arquivo[28:34]}')
-            mover_xml_erro(nome_arquivo)
+            editar_xml(nome_arquivo)
+            print(f'NFe {nome_arquivo[28:34]} Corrigida!')
             return
 
         if "NFe" in dic_arquivo:
