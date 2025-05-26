@@ -1,11 +1,9 @@
 import json
+from time import sleep
 import xmltodict
 import os
 import re
 import pymysql
-from time import sleep
-
-from Tools.scripts.summarize_stats import pretty
 
 print("Lendo os XML's, aguarde por gentileza..")
 
@@ -34,6 +32,11 @@ pag_dict = {
         "99": "99 - Outros"
     }
 
+tipo_emissao_dict = {
+    "1": "NORMAL",
+    "9": "CONTINGENCIA"
+}
+
 
 def deletar_xml_invalido():
     pasta = "nfe"
@@ -56,16 +59,6 @@ def editar_xml(nome_arquivo):
         arquivo_corrigido.write(novo_xml)
 
     extrair_dados(nome_arquivo)
-
-
-def mover_xml_erro(xml):
-    pasta_origem = "nfe"
-    pasta_destino = "nfe_erro"
-
-    caminho_origem = os.path.join(pasta_origem, xml)
-    caminho_destino = os.path.join(pasta_destino, xml)
-
-    os.rename(caminho_origem, caminho_destino)
 
 
 def extrair_dados(nome_arquivo):
@@ -95,30 +88,32 @@ def extrair_dados(nome_arquivo):
         serie = "00" + infos_nf["ide"]["serie"]
         data = infos_nf["ide"]["dhEmi"][:10]
         hora = infos_nf["ide"]["dhEmi"][11:19]
-        chave = dic_arquivo["nfeProc"]["protNFe"]["infProt"]["chNFe"]
+        chave = nome_arquivo[:44]# dic_arquivo["nfeProc"]["protNFe"]["infProt"]["chNFe"]
         data_pasta = chave[4:6] + "20" + chave[2:4]
         caminho_xml = "\\\\ESCRITORIO\SMC_LIGHT\\Notas_Fiscais\\NFCe\\" + data_pasta + "\Autorizadas\\" + chave + "-nfce.xml"
-        tipo_emissao = "NORMAL"
+        tipo_emissao = tipo_emissao_dict[str(infos_nf["ide"]["tpEmis"])]
         status_nfce = "AUTORIZADA"
         retorno_nfce = "100 Autorizado o uso da NF-e"
         tipo_pagamento = infos_nf["pag"]["detPag"]
         items_nf = infos_nf["det"]
 
-        inserir_nfce_mysql([numero_nota, serie, data, hora, valor_nota, descontos_nota, acrescimos_nota,
-                            valor_total_nota, chave, caminho_xml, tipo_emissao, status_nfce, retorno_nfce])
+        print(data_pasta)
 
-        inserir_venda_mysql([data, hora, valor_nota, descontos_nota, acrescimos_nota,
-                             valor_total_nota, "FECHADA", numero_nota])
-
-        if type(tipo_pagamento) == dict:
-            inserir_venda_pagamento_mysql([tipo_pagamento])
-        elif type(tipo_pagamento) == list:
-            inserir_venda_pagamento_mysql(tipo_pagamento)
-
-        if type(items_nf) == dict:
-            inserir_venda_item([items_nf])
-        elif type(items_nf) == list:
-            inserir_venda_item(items_nf)
+        # inserir_nfce_mysql([numero_nota, serie, data, hora, valor_nota, descontos_nota, acrescimos_nota,
+        #                     valor_total_nota, chave, caminho_xml, tipo_emissao, status_nfce, retorno_nfce])
+        
+        # inserir_venda_mysql([data, hora, valor_nota, descontos_nota, acrescimos_nota,
+        #                      valor_total_nota, "FECHADA", numero_nota])
+        
+        # if type(tipo_pagamento) == dict:
+        #     inserir_venda_pagamento_mysql([tipo_pagamento])
+        # elif type(tipo_pagamento) == list:
+        #     inserir_venda_pagamento_mysql(tipo_pagamento)
+        
+        # if type(items_nf) == dict:
+        #     inserir_venda_item([items_nf])
+        # elif type(items_nf) == list:
+        #     inserir_venda_item(items_nf)
 
 
 def inserir_nfce_mysql(dados):
@@ -222,8 +217,6 @@ def atualizar_nfce_cancelada(chave_nfce):
             conn.commit()
 
 
-lista_arquivos = os.listdir("nfe")
-
 ultima_venda = int(input("Digite o numero da ultima venda: "))
 cod_operador = int(input("Digite o codigo do operador: "))
 cod_caixa = int(input("Digite o numero caixa: "))
@@ -232,8 +225,9 @@ id_caixa = int(input("Digite o ID do caixa: "))
 codigo_venda_pagamento = ultima_venda
 codigo_venda_item = ultima_venda
 
-
 deletar_xml_invalido()
+
+lista_arquivos = os.listdir("nfe")
 
 cont = 0
 for arquivo in lista_arquivos:
